@@ -1,6 +1,6 @@
 import React, {PureComponent} from 'react';
 import {Provider} from "react-redux";
-import {LocaleProvider, Modal, Spin} from 'antd';
+import {ConfigProvider, LocaleProvider, Modal, Spin} from 'antd';
 import ZHCN from 'antd/lib/locale-provider/zh_CN';
 import css from './app.less';
 import store from './store';
@@ -10,12 +10,12 @@ import {reduxConnect} from "../index";
 export default class APP extends PureComponent {
   render() {
     return <Provider store={store}>
-      <LocaleProvider locale={ZHCN}>
+      <ConfigProvider locale={ZHCN}>
         <React.Fragment>
           <Router />
           <Loading />
         </React.Fragment>
-      </LocaleProvider>
+      </ConfigProvider>
     </Provider>
   }
 }
