@@ -7,6 +7,11 @@ let store = getStore(models);
 
 export default store;
 
+/**
+ * 获取redux对象
+ * @param models
+ * @returns {any}
+ */
 export function getStore(models){
 
   const store = createStore((state,action) => {
@@ -29,7 +34,7 @@ export function getStore(models){
       ...state,
       ...updateState
     }
-  },aryToObject(models,'namespace',item => item.state))
+  },aryToObject(models,'namespace',item => item.state));
 
 
   function put(namespace,action){
@@ -79,11 +84,22 @@ function getStoreDispatch(store,namespace){
   }
 }
 
+/**
+ * 格式化类型
+ * @param type
+ * @param namespace
+ * @returns {string}
+ */
 function formatType(type = '',namespace){
   const [typespace,funcField] = type.split('/');
   return funcField ? type : namespace + '/' + typespace
 }
 
+/**
+ * 循环遍历生成器
+ * @param gener
+ * @param params
+ */
 function loopGenerator(gener,params){
   const {value,done} = gener.next(params);
   if(!done){

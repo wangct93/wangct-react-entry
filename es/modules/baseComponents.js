@@ -1,7 +1,9 @@
 import {PureComponent} from "react";
 import {getProps, toPromise} from "wangct-util";
 
-
+/**
+ * 自定义组件
+ */
 export class DefineComponent extends PureComponent {
 
   getOptions(){

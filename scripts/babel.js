@@ -1,8 +1,8 @@
 
-const Babel = require('wangct-babel');
+const babel = require('wangct-babel');
 
 
-new Babel({
+babel({
   src:'es',
   output:'lib'
 });

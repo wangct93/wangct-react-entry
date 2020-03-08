@@ -1,5 +1,17 @@
 
-import * as utils from '../es';
+import {dispatch, render} from '../es';
+import React from "react";
+
+render();
 
 
-console.log(utils);
+dispatch({
+  type:'updateField',
+  field:'routes',
+  data:[
+    {
+      path:'/',
+      component:(props) => <div>123</div>
+    }
+  ]
+})

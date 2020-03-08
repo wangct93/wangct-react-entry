@@ -41,12 +41,18 @@ ul{
 
   .flex-child {
     flex: 1;
-    overflow: hidden;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    width:0;
+  }
+
+  .flex-parent-column{
+    .flex-parent();
     height: 100%;
+    flex-direction:column;
+  }
+
+  .flex-child-column{
+    flex:1;
+    height: 0;
   }
 
   .wct-form{

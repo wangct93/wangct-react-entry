@@ -4,10 +4,14 @@ const {resolve} = util;
 
 module.exports = {
   port:8855,
+  configOutput:resolve('lib/config'),
   output:{
     build:{
       publicPath:'/assets/'
     }
+  },
+  devServer:{
+    open:false,
   },
   routes:[
     {

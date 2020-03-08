@@ -1,48 +1,52 @@
-import {message} from 'antd';
 const {fetch} = window;
 
-function parseJSON(response) {
-  return response.json();
-}
-
-function checkStatus(response) {
-  const {status} = response;
-  if (status >= 200 && status < 300) {
-    return response;
-  }
-  const error = new Error(response.statusText);
-  error.response = response;
-  throw error;
-}
-
-export default function request(url, options = {},alertError = true,validCode = true) {
-  return requestBase(url,options)
-    .then(parseJSON)
-    .catch((error = {}) => {
-      const message = error.message ? error.message : error;
-      return {code:error.code || 500,message:message || '连接服务器失败！'};
+/**
+ * 请求方法
+ * @param url
+ * @param options
+ * @returns {*}
+ */
+export default function request(url, options = {}) {
+  options = formatOptions(options);
+  const {json = true} = options;
+  return fetch(url,options)
+    .then(checkStatus)
+    .then((res) => {
+      return json ? res.json() : res;
     })
-    .then(json => {
-      if(!validCode){
-        return json;
+    .then(data => {
+      const {validator = resValidator} = options;
+      if(json && validator){
+        return validator(data) ? resFormatter(data) : Promise.reject(data);
       }
-      const isValidCode = isSuccess(json);
-      if(!isValidCode && alertError){
-        message.error(json.message);
-      }
-      return isValidCode ? Promise.resolve(json.data) : Promise.reject(json);
+      return data;
     });
 }
 
+let resValidator = data => data.code === 0;
+let resFormatter = data => data.data;
 
-export function requestBase(url,options){
-  return fetch(url, formatOptions(options)).then(checkStatus);
+/**
+ * 设置返回成功响应
+ * @param func
+ */
+export function setResValidator(func){
+  resValidator = func;
 }
 
-function isSuccess(data){
-  return data.code === 0;
+/**
+ * 设置返回成功数据格式化
+ * @param func
+ */
+export function setResFormatter(func){
+  resFormatter = func;
 }
 
+/**
+ * 格式化选项
+ * @param options
+ * @returns {*}
+ */
 function formatOptions(options){
   const {body} = options;
   if(body && !(body instanceof FormData)){
@@ -53,4 +57,19 @@ function formatOptions(options){
     }
   }
   return options;
+}
+
+/**
+ * 检测状态
+ * @param response
+ * @returns {*}
+ */
+function checkStatus(response) {
+  const {status} = response;
+  if (status >= 200 && status < 300) {
+    return response;
+  }
+  const error = new Error(response.statusText);
+  error.response = response;
+  throw error;
 }
