@@ -1,19 +1,13 @@
 import {createStore} from "redux";
-import {aryToObject, callFunc, isFunc, isPromise} from "wangct-util";
+import {aryToObject, callFunc, isFunc, isPromise, toAry} from "wangct-util";
 import history from './history';
-import models from '../config/models';
-
-let store = getStore(models);
-
-export default store;
 
 /**
- * 获取redux对象
- * @param models
+ * 获取store对象
  * @returns {any}
  */
 export function getStore(models){
-
+  models = toAry(models);
   const store = createStore((state,action) => {
     const [namespace,funcField] = (action.type || '').split('/');
     const {reducers = {},effects = {}} = models.find(item => item.namespace === namespace) || {};
@@ -38,7 +32,7 @@ export function getStore(models){
 
 
   function put(namespace,action){
-    getDispatch(namespace)(action);
+    getStoreDispatch(store,namespace)(action);
     return Promise.resolve(action);
   }
 
@@ -70,12 +64,13 @@ export function getStore(models){
   return store;
 }
 
-
-export function getDispatch(namespace = 'global'){
-  return getStoreDispatch(store,namespace);
-}
-
-function getStoreDispatch(store,namespace){
+/**
+ * 获取store的dispatch
+ * @param store
+ * @param namespace
+ * @returns {function(...[*]=)}
+ */
+export function getStoreDispatch(store,namespace){
   return (action) => {
     store.dispatch({
       ...action,

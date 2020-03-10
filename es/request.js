@@ -6,7 +6,7 @@ const {fetch} = window;
  * @param options
  * @returns {*}
  */
-export default function request(url, options = {}) {
+export function request(url, options = {}) {
   options = formatOptions(options);
   const {json = true} = options;
   return fetch(url,options)

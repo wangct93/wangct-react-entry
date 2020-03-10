@@ -3,22 +3,20 @@ import React,{PureComponent} from 'react';
 import {Switch,Router,Route} from 'react-router-dom';
 import history from './history';
 import {Provider} from "react-redux";
-import store from "./store";
 import {ConfigProvider} from "antd";
 import ZHCN from "antd/lib/locale-provider/zh_CN";
-import {DefineComponent} from "./baseComponents";
-import {dispatch, reduxConnect} from "./utils";
-import routes from "../config/routes";
+import {dispatch, getFrameState, reduxConnect, setRoutes} from "./utils";
 
 /**
  * 路由组件
  */
 export default class RouterMod extends PureComponent {
   render() {
-    return <Provider store={store}>
+    const {props} = this;
+    return <Provider store={props.store}>
       <ConfigProvider locale={ZHCN}>
         <React.Fragment>
-          <RouterContent />
+          <RouterContent defaultRoutes={props.routes} />
           <Fragment />
         </React.Fragment>
       </ConfigProvider>
@@ -29,17 +27,13 @@ export default class RouterMod extends PureComponent {
 /**
  * 路由内容
  */
-@reduxConnect(({global}) => ({
-  routes:global && global.routes,
+@reduxConnect(({}) => ({
+  routes:getFrameState().routes,
 }))
 class RouterContent extends PureComponent{
 
   componentDidMount() {
-    dispatch({
-      type:'updateField',
-      field:'routes',
-      data:routes,
-    })
+    setRoutes(this.props.defaultRoutes);
   }
 
   render(){
@@ -54,10 +48,10 @@ class RouterContent extends PureComponent{
 /**
  * 全局组件
  */
-@reduxConnect(({global}) => ({
-  fragmentList:global && global.fragmentList,
+@reduxConnect(() => ({
+  fragmentList:getFrameState().fragmentList,
 }))
-class Fragment extends DefineComponent {
+class Fragment extends PureComponent {
   render() {
     return <React.Fragment>
       {this.props.fragmentList}

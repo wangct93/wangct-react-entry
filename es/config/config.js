@@ -1,3 +1,1 @@
-
-
-export default {};
+export default {"port":8855,"output":{"build":{"publicPath":"/assets/"}},"devServer":{"open":true},"routes":[{"path":"/","component":"Layout"}],"dynamicImport":true,"disableCssModules":["F:\\workspace\\publish\\wangct-react-entry\\node_modules\\wangct-react"],"configOutput":"F:\\workspace\\publish\\wangct-react-entry\\es\\config"}
