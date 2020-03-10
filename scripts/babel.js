@@ -4,5 +4,6 @@ const babel = require('wangct-babel');
 
 babel({
   src:'es',
-  output:'lib'
+  output:'lib',
+  runtime:true,
 });
