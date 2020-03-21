@@ -19,7 +19,6 @@ export function render(elem = 'root'){
   const modelsPro = import('./config/models').then(mod => mod.default);
   return Promise.all([routesPro,modelsPro]).then(([routes,models]) => {
     elem = isStr(elem) ? document.getElementById(elem) : elem;
-    console.log(models);
     const store = getStore([...models,...selfModels]);
     setStore(store);
     reactDomRender(<Router store={store} routes={routes} />,elem);

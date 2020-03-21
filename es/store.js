@@ -12,15 +12,22 @@ export function getStore(models){
     const [namespace,funcField] = (action.type || '').split('/');
     const {reducers = {},effects = {}} = models.find(item => item.namespace === namespace) || {};
     const updateState = {};
+    if(!reducers.update){
+      reducers.update = update;
+    }
+    if(!reducers.updateField){
+      reducers.updateField = update;
+    }
     if(effects[funcField]){
       const gener = effects[funcField](action,{
         put:put.bind(this,namespace),
         select,
         call
       });
-      loopGenerator(gener);
+      setTimeout(() => {
+        loopGenerator(gener);
+      },0);
     }
-
     if(reducers[funcField]){
       updateState[namespace] = reducers[funcField](state[namespace],action);
     }
@@ -106,4 +113,27 @@ function loopGenerator(gener,params){
       loopGenerator(gener,value);
     }
   }
+}
+
+/**
+ * 更新字段
+ * @param state
+ * @param field
+ * @param data
+ * @param parentField
+ */
+function update(state,{field,data,parentField}){
+  let extState = field === 'multiple' ? data : {[field]:data};
+  if(parentField){
+    extState = {
+      parentField:{
+        ...state[parentField],
+        ...extState,
+      },
+    };
+  }
+  return {
+    ...state,
+    ...extState
+  };
 }

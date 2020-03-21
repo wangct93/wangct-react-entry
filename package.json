@@ -1,6 +1,6 @@
 {
   "name": "wangct-react-entry",
-  "version": "1.0.15",
+  "version": "1.0.17",
   "description": "默认入口",
   "main": "lib/index.js",
   "scripts": {
