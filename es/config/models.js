@@ -1,1 +1,1 @@
-import global_6y6bwydv59 from '../../src/models/global.js'; export default [global_6y6bwydv59];
+import global_7dc6l6h6lq0 from '../../src/models/global.js'; export default [global_7dc6l6h6lq0];

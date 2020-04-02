@@ -1,5 +1,5 @@
 import {createStore} from "redux";
-import {aryToObject, callFunc, isFunc, isPromise, toAry} from "wangct-util";
+import {aryToObject, callFunc, isFunc, isPromise, toAry, toStr} from "wangct-util";
 import history from './history';
 
 /**
@@ -8,6 +8,20 @@ import history from './history';
  */
 export function getStore(models){
   models = toAry(models);
+  const watchMap = aryToObject(models,'namespace',({watch = {}}) => {
+    return Object.keys(watch).map((key) => {
+      const temp = key.split(',');
+      return {
+        argNames:temp,
+        func:watch[key],
+      };
+    });
+  });
+
+  const initState = aryToObject(models,'namespace',item => item.state);
+  delete initState['undefined'];
+  extraWatchState(initState,{});
+
   const store = createStore((state,action) => {
     const [namespace,funcField] = (action.type || '').split('/');
     const {reducers = {},effects = {}} = models.find(item => item.namespace === namespace) || {};
@@ -31,22 +45,95 @@ export function getStore(models){
     if(reducers[funcField]){
       updateState[namespace] = reducers[funcField](state[namespace],action);
     }
+    extraWatchState(updateState,state);
     return {
       ...state,
       ...updateState
-    }
-  },aryToObject(models,'namespace',item => item.state));
+    };
+  },initState);
 
+  /**
+   * 附加监听的state
+   * @param state
+   * @param oldState
+   * @returns {*}
+   */
+  function extraWatchState(state,oldState){
+    Object.keys(state).forEach(namespace => {
+      let scopeState = state[namespace];
+      const oldScopeState = oldState[namespace];
+      const changedCache = {};
 
+      /**
+       * 字段值是否改变
+       * @param field
+       * @returns {boolean|*}
+       */
+      function isChanged(field){
+        if(changedCache[field] !== undefined){
+          return changedCache[field];
+        }
+        const result = getValueByWatchField(scopeState,field) !== getValueByWatchField(oldScopeState,field);
+        changedCache[field] = result;
+        return result;
+      }
+      toAry(watchMap[namespace]).forEach(({argNames,func}) => {
+        const changeBol = argNames.some((argName) => isChanged(argName));
+        if(changeBol){
+          const args = argNames.map((argName) => {
+            return getValueByWatchField(scopeState,argName);
+          });
+          scopeState = {
+            ...scopeState,
+            ...func(...args),
+          };
+        }
+      });
+      state[namespace] = scopeState;
+    });
+    return state;
+  }
+
+  /**
+   * 根据监听字段获取对应值
+   * @param state
+   * @param field
+   * @returns {*}
+   */
+  function getValueByWatchField(state = {},field){
+    toStr(field).split('.').forEach(field => {
+      if(state){
+        state = state[field];
+      }
+    });
+    return state;
+  }
+
+  /**
+   * dispatch
+   * @param namespace
+   * @param action
+   * @returns {Promise<any>}
+   */
   function put(namespace,action){
     getStoreDispatch(store,namespace)(action);
     return Promise.resolve(action);
   }
 
+  /**
+   * 获取state
+   * @param func
+   * @returns {Promise<any>}
+   */
   function select(func){
     return Promise.resolve(func(store.getState()))
   }
 
+  /**
+   * 执行异步函数
+   * @param args
+   * @returns {Promise<*[]>|*}
+   */
   function call(...args){
     const target = args[0];
     if(isPromise(target)){
@@ -77,7 +164,7 @@ export function getStore(models){
  * @param namespace
  * @returns {function(...[*]=)}
  */
-export function getStoreDispatch(store,namespace){
+export function getStoreDispatch(store,namespace = 'global'){
   return (action) => {
     store.dispatch({
       ...action,
@@ -126,7 +213,7 @@ function update(state,{field,data,parentField}){
   let extState = field === 'multiple' ? data : {[field]:data};
   if(parentField){
     extState = {
-      parentField:{
+      [parentField]:{
         ...state[parentField],
         ...extState,
       },
