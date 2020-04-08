@@ -1,5 +1,5 @@
 import {createStore} from "redux";
-import {aryToObject, callFunc, isFunc, isPromise, toAry, toStr} from "wangct-util";
+import {aryToObject, callFunc, isFunc, isPromise, objForEach, toAry, toStr} from "wangct-util";
 import history from './history';
 
 /**
@@ -8,20 +8,7 @@ import history from './history';
  */
 export function getStore(models){
   models = toAry(models);
-  const watchMap = aryToObject(models,'namespace',({watch = {}}) => {
-    return Object.keys(watch).map((key) => {
-      const temp = key.split(',');
-      return {
-        argNames:temp,
-        func:watch[key],
-      };
-    });
-  });
-
-  const initState = aryToObject(models,'namespace',item => item.state);
-  delete initState['undefined'];
-  extraWatchState(initState,{});
-
+  const watchPropsMap = getWatchPropsMap(models);
   const store = createStore((state,action) => {
     const [namespace,funcField] = (action.type || '').split('/');
     const {reducers = {},effects = {}} = models.find(item => item.namespace === namespace) || {};
@@ -43,71 +30,23 @@ export function getStore(models){
       },0);
     }
     if(reducers[funcField]){
-      updateState[namespace] = reducers[funcField](state[namespace],action);
+      let scopeState = reducers[funcField](state[namespace],action);
+      const oldScopeState = state[namespace];
+      if(scopeState._type === 'init'){
+        scopeState = scopeState.data;
+      }
+      const watchState = getWatchState(scopeState,watchPropsMap[namespace],oldScopeState);
+      updateState[namespace] = {
+        ...oldScopeState,
+        ...scopeState,
+        ...watchState,
+      };
     }
-    extraWatchState(updateState,state);
     return {
       ...state,
       ...updateState
     };
-  },initState);
-
-  /**
-   * 附加监听的state
-   * @param state
-   * @param oldState
-   * @returns {*}
-   */
-  function extraWatchState(state,oldState){
-    Object.keys(state).forEach(namespace => {
-      let scopeState = state[namespace];
-      const oldScopeState = oldState[namespace];
-      const changedCache = {};
-
-      /**
-       * 字段值是否改变
-       * @param field
-       * @returns {boolean|*}
-       */
-      function isChanged(field){
-        if(changedCache[field] !== undefined){
-          return changedCache[field];
-        }
-        const result = getValueByWatchField(scopeState,field) !== getValueByWatchField(oldScopeState,field);
-        changedCache[field] = result;
-        return result;
-      }
-      toAry(watchMap[namespace]).forEach(({argNames,func}) => {
-        const changeBol = argNames.some((argName) => isChanged(argName));
-        if(changeBol){
-          const args = argNames.map((argName) => {
-            return getValueByWatchField(scopeState,argName);
-          });
-          scopeState = {
-            ...scopeState,
-            ...func(...args),
-          };
-        }
-      });
-      state[namespace] = scopeState;
-    });
-    return state;
-  }
-
-  /**
-   * 根据监听字段获取对应值
-   * @param state
-   * @param field
-   * @returns {*}
-   */
-  function getValueByWatchField(state = {},field){
-    toStr(field).split('.').forEach(field => {
-      if(state){
-        state = state[field];
-      }
-    });
-    return state;
-  }
+  },{});
 
   /**
    * dispatch
@@ -145,7 +84,13 @@ export function getStore(models){
     }
   }
 
-  models.forEach(({subscriptions,namespace}) => {
+  models.forEach((model) => {
+    const {subscriptions,namespace} = model;
+    store.dispatch({
+      type:model.namespace + '/update',
+      field:'multiple',
+      data:model.state,
+    });
     if(subscriptions){
       Object.keys(subscriptions).forEach(key => {
         callFunc(subscriptions[key],{
@@ -219,8 +164,112 @@ function update(state,{field,data,parentField}){
       },
     };
   }
-  return {
+  return extState;
+}
+
+/**
+ * 获取监听属性map
+ * @param models
+ */
+function getWatchPropsMap(models){
+  return aryToObject(models,'namespace',((model) => {
+    const {watch = {}} = model;
+    const mapData = {};
+    const objPropMapData = {};
+    objForEach(watch,(value,key) => {
+      const temp = key.split(',');
+      temp.forEach((itemKey) => {
+        const data = itemKey.includes('.') ? objPropMapData : mapData;
+        const ary = data[itemKey] || [];
+        ary.push({
+          func:value,
+          args:temp,
+        });
+        data[itemKey] = ary;
+      });
+    });
+    return {
+      propMap:mapData,
+      objPropMap:objPropMapData,
+    };
+  }));
+}
+
+/**
+ * 获取监听的state
+ * @param state
+ * @param watchPropsMap
+ * @param originState
+ */
+function getWatchState(state,{propMap = {},objPropMap = {}},originState){
+  let watchState = {};
+  const changedCache = {};
+  const tempMap = new Map();
+  const realState = {
+    ...originState,
     ...state,
-    ...extState
   };
+  objForEach(state,(value,key) => {
+    toAry(propMap[key]).forEach((item) => {
+      callWatchFunc(item);
+    });
+  });
+  objForEach(objPropMap,(value,key) => {
+    if(isChanged(key)){
+      value.forEach((item) => {
+        callWatchFunc(item);
+      });
+    }
+  });
+
+  /**
+   * 字段值是否改变
+   * @param field
+   * @returns {boolean|*}
+   */
+  function isChanged(field){
+    if(changedCache[field] !== undefined){
+      return changedCache[field];
+    }
+    const result = getValueByWatchField(realState,field) !== getValueByWatchField(originState,field);
+    changedCache[field] = result;
+    return result;
+  }
+
+  /**
+   * 调用监听函数
+   * @param data
+   */
+  function callWatchFunc(data){
+    if(tempMap.get(data.func)){
+      return;
+    }
+    tempMap.set(data.func,true);
+    const args = toAry(data.args).map((name) => {
+      const [field] = name.split('.');
+      return realState[field];
+    });
+    const funcState = data.func(...args);
+    watchState = {
+      ...watchState,
+      ...funcState,
+    };
+  }
+
+  return watchState;
+}
+
+/**
+ * 根据监听字段获取对应值
+ * @param state
+ * @param field
+ * @returns {*}
+ */
+function getValueByWatchField(state = {},field){
+  toStr(field).split('.').forEach(field => {
+    if(state){
+      state = state[field];
+    }
+  });
+  return state;
 }

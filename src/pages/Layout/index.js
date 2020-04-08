@@ -26,10 +26,11 @@ export default class Test extends PureComponent {
   }
 
   render() {
-    return <div onClick={this.doTest}>
-      {
+    return <div>
+      <p onClick={this.doTest}>{
         this.props.newName
-      }
+      }</p>
+
       <p onClick={this.doTest2}>{JSON.stringify(this.props.data)}</p>
     </div>
   }
