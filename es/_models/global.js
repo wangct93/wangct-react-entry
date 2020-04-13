@@ -1,6 +1,10 @@
 import {Fields} from "../options";
-
-const initState = {};
+import history from '../history';
+import config from '../config/config';
+const initState = {
+  pathname:history.location.pathname,
+  isTabRouter: config.isTabRouter,
+};
 
 export default {
   namespace: Fields.globalNamespace,
@@ -30,7 +34,15 @@ export default {
     },
   },
   subscriptions: {
-
+    listenPathname({ history,dispatch}) {
+      history.listen((match) => {
+        dispatch({
+          type:'updateField',
+          field:'pathname',
+          data:match.pathname
+        });
+      });
+    }
   },
 };
 

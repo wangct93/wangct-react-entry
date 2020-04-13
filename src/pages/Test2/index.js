@@ -8,6 +8,10 @@ import {random} from "wangct-util";
 }))
 export default class Test extends PureComponent {
 
+  componentDidMount() {
+    console.log('testdidi')
+  }
+
   doTest(){
     dispatch({
       type:'updateField',
@@ -25,14 +29,9 @@ export default class Test extends PureComponent {
     })
   }
 
-  componentDidMount() {
-    console.log('layoutdidi')
-  }
-
   render() {
     return <div>
-      <a onClick={() => pathTo('/test')}>测试</a>
-      {this.props.children}
+      <a onClick={() => pathTo('/test')}>test2</a>
     </div>
   }
 }

@@ -6,6 +6,7 @@ import {Provider} from "react-redux";
 import {ConfigProvider} from "antd";
 import ZHCN from "antd/lib/locale-provider/zh_CN";
 import {dispatch, getFrameState, reduxConnect, setRoutes} from "./utils";
+import TabRouter from "./components/TabRouter";
 
 /**
  * 路由组件
@@ -29,6 +30,7 @@ export default class RouterMod extends PureComponent {
  */
 @reduxConnect(({}) => ({
   routes:getFrameState().routes,
+  isTabRouter:getFrameState().isTabRouter
 }))
 class RouterContent extends PureComponent{
 
@@ -39,7 +41,7 @@ class RouterContent extends PureComponent{
   render(){
     return <Router history={history}>
       {
-        getRoutes(this.props.routes)
+        getRoutes(this.props.routes,undefined,this.props.isTabRouter)
       }
     </Router>
   }
@@ -63,15 +65,20 @@ class Fragment extends PureComponent {
  * 获取路由配置
  * @param routes
  * @param indexPath
+ * @param isTab
  * @returns {*}
  */
-function getRoutes(routes,indexPath){
+export function getRoutes(routes,indexPath,isTab){
   if(!routes){
     return;
   }
+  if(isTab){
+    return <TabRouter options={routes} />
+  }
   return <Switch>
     {
-      routes.map(({path:routePath,component:RouteComponent = 'div',children = [],indexPath}) => {
+      routes.map((route) => {
+        const {path:routePath,component:RouteComponent = 'div',children = [],indexPath} = route;
         const props = {
           key:routePath,
           path:routePath
@@ -79,7 +86,7 @@ function getRoutes(routes,indexPath){
         props.render = props => {
           return <RouteComponent {...props}>
             {
-              children && children.length && getRoutes(children.map(childRoute => ({...childRoute,path:pathJoin(routePath,childRoute.path)})),indexPath && pathJoin(routePath,indexPath))
+              children && children.length && getRoutes(children.map(childRoute => ({...childRoute,path:pathJoin(routePath,childRoute.path)})),indexPath && pathJoin(routePath,indexPath),route.isTab)
             }
           </RouteComponent>
         };
@@ -89,7 +96,7 @@ function getRoutes(routes,indexPath){
     {
       indexPath ? <Route render={() => history.push(indexPath)} exact key="redirectRoute" path="/" /> : ''
     }
-  </Switch>
+  </Switch>;
 }
 
 /**

@@ -3,6 +3,7 @@ const util = require('wangct-server-util');
 const {resolve} = util;
 
 module.exports = {
+  isTabRouter:true,
   port:8855,
   output:{
     build:{
@@ -13,9 +14,24 @@ module.exports = {
     open:true,
   },
   routes:[
+    // {
+    //   path:'/test',
+    //   component:'Test'
+    // },
     {
       path:'/',
-      component:'Layout'
+      component:'Layout',
+      isTab:true,
+      children:[
+        {
+          path:'/test',
+          component:'Test'
+        },
+        {
+          path:'/',
+          component:'Test2'
+        },
+      ]
     }
   ],
   dynamicImport:true,
